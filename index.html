@@ -549,33 +549,39 @@
                 allLinks.forEach(link => {
                     const href = link.href;
                     if (href) {
-                        // Extract base URL (without query parameters)
-                        const url = new URL(href);
-                        const baseUrl = url.origin + url.pathname;
-                        
-                        // Check if it's a Register Now button or the first image
-                        const isRegisterButton = link.textContent.includes('Register Now') || 
-                                               link.innerHTML.includes('Register Now');
-                        const isFirstImage = link.querySelector('img') && 
-                                           tempDiv.querySelector('a img')?.parentElement === link;
-                        
-                        if (isRegisterButton || isFirstImage) {
-                            baseUrls.set(link, baseUrl);
+                        try {
+                            // Extract base URL (without query parameters)
+                            const url = new URL(href);
+                            const baseUrl = url.origin + url.pathname;
                             
-                            // Store the first base URL for preview
-                            if (!firstBaseUrl && baseUrl) {
-                                firstBaseUrl = baseUrl;
+                            // Check if this is an event link (contains /event/ in the path)
+                            if (url.pathname.includes('/event/')) {
+                                baseUrls.set(link, baseUrl);
+                                
+                                // Store the first event base URL for preview and processing
+                                if (!firstBaseUrl) {
+                                    firstBaseUrl = baseUrl;
+                                }
+                                
+                                // Extract slug from pathname for utm_campaign
+                                if (!campaignSlugFound && url.pathname) {
+                                    // Get the last segment of the path as the slug
+                                    const pathSegments = url.pathname.split('/').filter(segment => segment);
+                                    if (pathSegments.length > 0) {
+                                        const slug = pathSegments[pathSegments.length - 1];
+                                        document.getElementById('utmCampaign').value = slug;
+                                        campaignSlugFound = true;
+                                    }
+                                }
                             }
-                            
-                            // Extract utm_campaign from the first matching link
-                            if (!campaignSlugFound && url.searchParams.has('utm_campaign')) {
-                                const utmCampaign = url.searchParams.get('utm_campaign');
-                                document.getElementById('utmCampaign').value = utmCampaign;
-                                campaignSlugFound = true;
-                            }
+                        } catch (e) {
+                            // Skip invalid URLs
                         }
                     }
                 });
+                
+                // Trigger preview update after extraction
+                updateLinkPreview();
             } catch (error) {
                 console.error('Error extracting base URLs:', error);
             }
@@ -629,8 +635,16 @@
                 const linkPreview = document.getElementById('linkPreview');
                 const previewUrl = document.getElementById('previewUrl');
                 
+                // Build the full URL with actual values
+                const params = new URLSearchParams({
+                    utm_source: utmSource,
+                    utm_medium: utmMedium,
+                    utm_campaign: utmCampaign,
+                    utm_content: '[partner-name]'
+                });
+                
                 linkPreview.style.display = 'block';
-                previewUrl.textContent = `${firstBaseUrl}?utm_source=${utmSource}&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}&utm_content=[partner-name]`;
+                previewUrl.textContent = `${firstBaseUrl}?${params.toString().replace('%5B', '[').replace('%5D', ']')}`;
             } else {
                 document.getElementById('linkPreview').style.display = 'none';
             }
@@ -700,6 +714,11 @@
                 return;
             }
 
+            if (!firstBaseUrl) {
+                showStatus('No event links found in the HTML!', true);
+                return;
+            }
+
             try {
                 // Create a temporary div to parse the HTML
                 const tempDiv = document.createElement('div');
@@ -707,31 +726,28 @@
 
                 let modifiedCount = 0;
 
-                // Find and replace links in "Register Now" buttons
+                // Find ALL links that match the event URL pattern
                 const allLinks = tempDiv.querySelectorAll('a');
                 allLinks.forEach(link => {
-                    const isRegisterButton = link.textContent.includes('Register Now') || 
-                                           link.innerHTML.includes('Register Now');
-                    if (isRegisterButton) {
-                        const url = new URL(link.href);
-                        const baseUrl = url.origin + url.pathname;
-                        link.href = buildUrlWithUtm(baseUrl, partnerName);
-                        modifiedCount++;
+                    try {
+                        const href = link.href;
+                        if (href) {
+                            const url = new URL(href);
+                            const baseUrl = url.origin + url.pathname;
+                            
+                            // Check if this link matches our event base URL
+                            if (baseUrl === firstBaseUrl) {
+                                link.href = buildUrlWithUtm(baseUrl, partnerName);
+                                modifiedCount++;
+                            }
+                        }
+                    } catch (e) {
+                        // Skip invalid URLs
                     }
                 });
 
-                // Find and replace the first image link (top image)
-                const firstImageLink = tempDiv.querySelector('a img');
-                if (firstImageLink && firstImageLink.parentElement && firstImageLink.parentElement.tagName === 'A') {
-                    const link = firstImageLink.parentElement;
-                    const url = new URL(link.href);
-                    const baseUrl = url.origin + url.pathname;
-                    link.href = buildUrlWithUtm(baseUrl, partnerName);
-                    modifiedCount++;
-                }
-
                 if (modifiedCount === 0) {
-                    showStatus('No "Register Now" buttons or top image link found!', true);
+                    showStatus('No event links found in the HTML!', true);
                     return;
                 }
 
@@ -749,7 +765,7 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
-                showStatus(`✓ Downloaded! Modified ${modifiedCount} link${modifiedCount > 1 ? 's' : ''} for ${partnerName}.`);
+                showStatus(`✓ Downloaded! Modified ${modifiedCount} event link${modifiedCount > 1 ? 's' : ''} for ${partnerName}.`);
             } catch (error) {
                 showStatus('Error processing HTML. Please check your input.', true);
                 console.error('Error:', error);
