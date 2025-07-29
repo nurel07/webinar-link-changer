@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Link Modifier</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 85px);
+        }
+
+        .left-panel {
+            width: 50%;
+            background: white;
+            padding: 30px;
+            overflow-y: auto;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .right-panel {
+            width: 50%;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .preview-header {
+            background: #333;
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .preview-header::before {
+            content: "👁";
+            font-size: 1.2em;
+        }
+
+        .preview-container {
+            flex: 1;
+            overflow: hidden;
+            padding: 20px;
+            background: #e8e8e8;
+            position: relative;
+        }
+
+        .preview-frame {
+            background: white;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .preview-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: "📝";
+            font-size: 1.1em;
+        }
+
+        .utm-section .section-title::before {
+            content: "🎯";
+        }
+
+        .partner-section .section-title::before {
+            content: "👥";
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .utm-params {
+            display: grid;
+            gap: 15px;
+        }
+
+        .utm-input-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .utm-label {
+            min-width: 120px;
+            font-weight: 500;
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .partner-list {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .partner-input-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .partner-label {
+            min-width: 80px;
+            font-weight: 500;
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .download-btn {
+            padding: 10px 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateX(-10px);
+            pointer-events: none;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .download-btn::before {
+            content: "⬇";
+            font-size: 1.1em;
+        }
+
+        .download-btn.show {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: all;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .add-partner-btn {
+            padding: 10px 20px;
+            background: #48bb78;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 auto;
+        }
+
+        .add-partner-btn:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+        }
+
+        .add-partner-btn::before {
+            content: "+";
+            font-size: 1.3em;
+        }
+
+        .remove-btn {
+            padding: 8px 12px;
+            background: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .remove-btn:hover {
+            background: #c53030;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px 16px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+
+        .info-box p {
+            color: #1565c0;
+            line-height: 1.5;
+        }
+
+        .status-message {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            padding: 15px 25px;
+            background: #48bb78;
+            color: white;
+            border-radius: 10px;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-message.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .status-message.error {
+            background: #e53e3e;
+        }
+
+        .empty-preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            font-size: 1.2em;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .link-preview {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f4f8;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+        }
+
+        .preview-url {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #4a5568;
+            word-break: break-all;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .left-panel,
+            .right-panel {
+                width: 100%;
+                height: 50%;
+            }
+
+            .left-panel {
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Email Link Modifier</h1>
+        <p>Update "Register Now" button links with custom UTM parameters</p>
+    </div>
+
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="info-box">
+                <p>This tool updates all "Register Now" buttons and the top image link with custom UTM parameters for each partner.</p>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Paste Your Email HTML</h2>
+                <textarea id="htmlInput" placeholder="Paste your email HTML here to see the preview..."></textarea>
+            </div>
+
+            <div class="section utm-section">
+                <h2 class="section-title">UTM Parameters</h2>
+                <div class="utm-params">
+                    <div class="utm-input-group">
+                        <label class="utm-label">utm_source:</label>
+                        <input type="text" id="utmSource" value="affiliate" placeholder="utm_source">
+                    </div>
+                    <div class="utm-input-group">
+                        <label class="utm-label">utm_medium:</label>
+                        <input type="text" id="utmMedium" value="referral" placeholder="utm_medium">
+                    </div>
+                    <div class="utm-input-group">
+                        <label class="utm-label">utm_campaign:</label>
+                        <input type="text" id="utmCampaign" placeholder="e.g., the-real-cost-of-growth">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section partner-section">
+                <h2 class="section-title">Partner Names (utm_content)</h2>
+                <div class="partner-list" id="partnerList">
+                    <div class="partner-input-group" data-partner-id="1">
+                        <label class="partner-label">Partner 1:</label>
+                        <div class="input-wrapper">
+                            <input type="text" class="partner-name" placeholder="e.g., business-modification-group">
+                            <button class="download-btn" onclick="downloadModifiedHTML(this)">Download</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="add-partner-btn" onclick="addPartner()">Add Partner</button>
+                <div class="link-preview" id="linkPreview" style="display: none;">
+                    <h3 style="font-size: 0.95em; font-weight: 600; margin-bottom: 10px; color: #333;">Preview:</h3>
+                    <div class="preview-url" id="previewUrl"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="preview-header">
+                Email Preview
+            </div>
+            <div class="preview-container">
+                <div class="preview-frame" id="previewFrame">
+                    <div class="empty-preview">
+                        <div>
+                            <p>📧</p>
+                            <p>Paste your email HTML to see the preview</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-message" id="statusMessage"></div>
+
+    <script>
+        let partnerCount = 1;
+        let baseUrls = new Map();
+        let firstBaseUrl = '';
+
+        // Update preview when HTML is pasted
+        document.getElementById('htmlInput').addEventListener('input', function() {
+            updatePreview();
+            extractBaseUrls();
+            checkDownloadButtons();
+            updateLinkPreview();
+        });
+
+        // Check download buttons when UTM parameters change
+        document.getElementById('utmSource').addEventListener('input', function() {
+            checkDownloadButtons();
+            updateLinkPreview();
+        });
+        document.getElementById('utmMedium').addEventListener('input', function() {
+            checkDownloadButtons();
+            updateLinkPreview();
+        });
+        document.getElementById('utmCampaign').addEventListener('input', function() {
+            checkDownloadButtons();
+            updateLinkPreview();
+        });
+
+        function updatePreview() {
+            const htmlContent = document.getElementById('htmlInput').value;
+            const previewFrame = document.getElementById('previewFrame');
+            
+            if (htmlContent.trim()) {
+                // Clear the frame first
+                previewFrame.innerHTML = '';
+                
+                // Create an iframe with explicit dimensions
+                const iframe = document.createElement('iframe');
+                iframe.className = 'preview-iframe';
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.position = 'absolute';
+                iframe.style.top = '0';
+                iframe.style.left = '0';
+                iframe.style.border = 'none';
+                iframe.style.background = 'white';
+                
+                previewFrame.appendChild(iframe);
+                
+                // Write the HTML content to the iframe
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                iframeDoc.open();
+                iframeDoc.write(htmlContent);
+                iframeDoc.close();
+                
+                // Ensure the iframe body takes full height
+                const style = iframeDoc.createElement('style');
+                style.textContent = `
+                    html, body { 
+                        margin: 0; 
+                        padding: 0; 
+                        height: 100%;
+                        overflow: auto;
+                    }
+                    body { 
+                        font-family: Arial, sans-serif;
+                    }
+                    table { 
+                        border-collapse: collapse; 
+                    }
+                `;
+                if (iframeDoc.head) {
+                    iframeDoc.head.appendChild(style);
+                }
+            } else {
+                previewFrame.innerHTML = `
+                    <div class="empty-preview">
+                        <div>
+                            <p>📧</p>
+                            <p>Paste your email HTML to see the preview</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function extractBaseUrls() {
+            const htmlContent = document.getElementById('htmlInput').value;
+            if (!htmlContent.trim()) return;
+
+            try {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+
+                baseUrls.clear();
+                let campaignSlugFound = false;
+
+                // Find all links
+                const allLinks = tempDiv.querySelectorAll('a');
+                allLinks.forEach(link => {
+                    const href = link.href;
+                    if (href) {
+                        // Extract base URL (without query parameters)
+                        const url = new URL(href);
+                        const baseUrl = url.origin + url.pathname;
+                        
+                        // Check if it's a Register Now button or the first image
+                        const isRegisterButton = link.textContent.includes('Register Now') || 
+                                               link.innerHTML.includes('Register Now');
+                        const isFirstImage = link.querySelector('img') && 
+                                           tempDiv.querySelector('a img')?.parentElement === link;
+                        
+                        if (isRegisterButton || isFirstImage) {
+                            baseUrls.set(link, baseUrl);
+                            
+                            // Store the first base URL for preview
+                            if (!firstBaseUrl && baseUrl) {
+                                firstBaseUrl = baseUrl;
+                            }
+                            
+                            // Extract utm_campaign from the first matching link
+                            if (!campaignSlugFound && url.searchParams.has('utm_campaign')) {
+                                const utmCampaign = url.searchParams.get('utm_campaign');
+                                document.getElementById('utmCampaign').value = utmCampaign;
+                                campaignSlugFound = true;
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error extracting base URLs:', error);
+            }
+        }
+
+        function addPartner() {
+            partnerCount++;
+            const partnerList = document.getElementById('partnerList');
+            
+            const newPartner = document.createElement('div');
+            newPartner.className = 'partner-input-group';
+            newPartner.setAttribute('data-partner-id', partnerCount);
+            newPartner.innerHTML = `
+                <label class="partner-label">Partner ${partnerCount}:</label>
+                <div class="input-wrapper">
+                    <input type="text" class="partner-name" placeholder="Enter partner name...">
+                    <button class="download-btn" onclick="downloadModifiedHTML(this)">Download</button>
+                    <button class="remove-btn" onclick="removePartner(this)">Remove</button>
+                </div>
+            `;
+            
+            partnerList.appendChild(newPartner);
+            
+            // Add event listener to the new input
+            const newInput = newPartner.querySelector('.partner-name');
+            newInput.addEventListener('input', function() {
+                checkDownloadButtons();
+                updateLinkPreview();
+            });
+        }
+
+        function removePartner(button) {
+            const partnerGroup = button.closest('.partner-input-group');
+            partnerGroup.remove();
+        }
+
+        // Setup event listeners for partner name inputs
+        document.querySelectorAll('.partner-name').forEach(input => {
+            input.addEventListener('input', function() {
+                checkDownloadButtons();
+                updateLinkPreview();
+            });
+        });
+
+        function updateLinkPreview() {
+            const utmSource = document.getElementById('utmSource').value.trim();
+            const utmMedium = document.getElementById('utmMedium').value.trim();
+            const utmCampaign = document.getElementById('utmCampaign').value.trim();
+            
+            if (firstBaseUrl && utmSource && utmMedium && utmCampaign) {
+                const linkPreview = document.getElementById('linkPreview');
+                const previewUrl = document.getElementById('previewUrl');
+                
+                linkPreview.style.display = 'block';
+                previewUrl.textContent = `${firstBaseUrl}?utm_source=${utmSource}&utm_medium=${utmMedium}&utm_campaign=${utmCampaign}&utm_content=[partner-name]`;
+            } else {
+                document.getElementById('linkPreview').style.display = 'none';
+            }
+        }
+
+        function checkDownloadButtons() {
+            const htmlContent = document.getElementById('htmlInput').value.trim();
+            const utmSource = document.getElementById('utmSource').value.trim();
+            const utmMedium = document.getElementById('utmMedium').value.trim();
+            const utmCampaign = document.getElementById('utmCampaign').value.trim();
+            
+            document.querySelectorAll('.partner-input-group').forEach(group => {
+                const partnerName = group.querySelector('.partner-name').value.trim();
+                const downloadBtn = group.querySelector('.download-btn');
+                
+                if (htmlContent && utmSource && utmMedium && utmCampaign && partnerName) {
+                    downloadBtn.classList.add('show');
+                } else {
+                    downloadBtn.classList.remove('show');
+                }
+            });
+        }
+
+        function showStatus(message, isError = false, duration = 3000) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.classList.add('show');
+            
+            if (isError) {
+                statusEl.classList.add('error');
+            } else {
+                statusEl.classList.remove('error');
+            }
+            
+            setTimeout(() => {
+                statusEl.classList.remove('show');
+            }, duration);
+        }
+
+        function buildUrlWithUtm(baseUrl, utmContent) {
+            const utmSource = document.getElementById('utmSource').value.trim();
+            const utmMedium = document.getElementById('utmMedium').value.trim();
+            const utmCampaign = document.getElementById('utmCampaign').value.trim();
+            
+            const params = new URLSearchParams({
+                utm_source: utmSource,
+                utm_medium: utmMedium,
+                utm_campaign: utmCampaign,
+                utm_content: utmContent
+            });
+            
+            return `${baseUrl}?${params.toString()}`;
+        }
+
+        function downloadModifiedHTML(button) {
+            const partnerGroup = button.closest('.partner-input-group');
+            const partnerName = partnerGroup.querySelector('.partner-name').value.trim();
+            const partnerId = partnerGroup.getAttribute('data-partner-id');
+            
+            const htmlContent = document.getElementById('htmlInput').value;
+            const utmSource = document.getElementById('utmSource').value.trim();
+            const utmMedium = document.getElementById('utmMedium').value.trim();
+            const utmCampaign = document.getElementById('utmCampaign').value.trim();
+
+            if (!htmlContent || !utmSource || !utmMedium || !utmCampaign || !partnerName) {
+                showStatus('Please fill in all required fields!', true);
+                return;
+            }
+
+            try {
+                // Create a temporary div to parse the HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+
+                let modifiedCount = 0;
+
+                // Find and replace links in "Register Now" buttons
+                const allLinks = tempDiv.querySelectorAll('a');
+                allLinks.forEach(link => {
+                    const isRegisterButton = link.textContent.includes('Register Now') || 
+                                           link.innerHTML.includes('Register Now');
+                    if (isRegisterButton) {
+                        const url = new URL(link.href);
+                        const baseUrl = url.origin + url.pathname;
+                        link.href = buildUrlWithUtm(baseUrl, partnerName);
+                        modifiedCount++;
+                    }
+                });
+
+                // Find and replace the first image link (top image)
+                const firstImageLink = tempDiv.querySelector('a img');
+                if (firstImageLink && firstImageLink.parentElement && firstImageLink.parentElement.tagName === 'A') {
+                    const link = firstImageLink.parentElement;
+                    const url = new URL(link.href);
+                    const baseUrl = url.origin + url.pathname;
+                    link.href = buildUrlWithUtm(baseUrl, partnerName);
+                    modifiedCount++;
+                }
+
+                if (modifiedCount === 0) {
+                    showStatus('No "Register Now" buttons or top image link found!', true);
+                    return;
+                }
+
+                // Get the modified HTML
+                const modifiedHTML = tempDiv.innerHTML;
+
+                // Create a blob and download
+                const blob = new Blob([modifiedHTML], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `email-partner${partnerId}-${partnerName}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showStatus(`✓ Downloaded! Modified ${modifiedCount} link${modifiedCount > 1 ? 's' : ''} for ${partnerName}.`);
+            } catch (error) {
+                showStatus('Error processing HTML. Please check your input.', true);
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
