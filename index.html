@@ -378,13 +378,13 @@
 <body>
     <div class="header">
         <h1>Email Link Modifier</h1>
-        <p>Update "Register Now" button links with custom UTM parameters</p>
+        <p>Update event links with custom UTM parameters for each partner</p>
     </div>
 
     <div class="main-container">
         <div class="left-panel">
             <div class="info-box">
-                <p>This tool updates all "Register Now" buttons and the top image link with custom UTM parameters for each partner.</p>
+                <p>This tool updates all Workiz event links (https://fsm.workiz.com/event/{event-name}) with custom UTM parameters for each partner.</p>
             </div>
 
             <div class="section">
@@ -405,7 +405,7 @@
                     </div>
                     <div class="utm-input-group">
                         <label class="utm-label">utm_campaign:</label>
-                        <input type="text" id="utmCampaign" placeholder="e.g., the-real-cost-of-growth">
+                        <input type="text" id="utmCampaign" placeholder="Auto-filled from event URL">
                     </div>
                 </div>
             </div>
@@ -542,6 +542,7 @@
                 tempDiv.innerHTML = htmlContent;
 
                 baseUrls.clear();
+                firstBaseUrl = '';
                 let campaignSlugFound = false;
 
                 // Find all links
@@ -554,8 +555,8 @@
                             const url = new URL(href);
                             const baseUrl = url.origin + url.pathname;
                             
-                            // Check if this is an event link (contains /event/ in the path)
-                            if (url.pathname.includes('/event/')) {
+                            // Check if this is a Workiz event link
+                            if (href.startsWith('https://fsm.workiz.com/event/')) {
                                 baseUrls.set(link, baseUrl);
                                 
                                 // Store the first event base URL for preview and processing
@@ -563,13 +564,13 @@
                                     firstBaseUrl = baseUrl;
                                 }
                                 
-                                // Extract slug from pathname for utm_campaign
+                                // Extract event name from pathname for utm_campaign
                                 if (!campaignSlugFound && url.pathname) {
-                                    // Get the last segment of the path as the slug
-                                    const pathSegments = url.pathname.split('/').filter(segment => segment);
-                                    if (pathSegments.length > 0) {
-                                        const slug = pathSegments[pathSegments.length - 1];
-                                        document.getElementById('utmCampaign').value = slug;
+                                    // Get the event name after /event/
+                                    const pathMatch = url.pathname.match(/\/event\/(.+)/);
+                                    if (pathMatch && pathMatch[1]) {
+                                        const eventName = pathMatch[1];
+                                        document.getElementById('utmCampaign').value = eventName;
                                         campaignSlugFound = true;
                                     }
                                 }
@@ -715,7 +716,7 @@
             }
 
             if (!firstBaseUrl) {
-                showStatus('No event links found in the HTML!', true);
+                showStatus('No Workiz event links found in the HTML!', true);
                 return;
             }
 
@@ -726,20 +727,16 @@
 
                 let modifiedCount = 0;
 
-                // Find ALL links that match the event URL pattern
+                // Find ALL links that match Workiz event URL pattern
                 const allLinks = tempDiv.querySelectorAll('a');
                 allLinks.forEach(link => {
                     try {
                         const href = link.href;
-                        if (href) {
+                        if (href && href.startsWith('https://fsm.workiz.com/event/')) {
                             const url = new URL(href);
                             const baseUrl = url.origin + url.pathname;
-                            
-                            // Check if this link matches our event base URL
-                            if (baseUrl === firstBaseUrl) {
-                                link.href = buildUrlWithUtm(baseUrl, partnerName);
-                                modifiedCount++;
-                            }
+                            link.href = buildUrlWithUtm(baseUrl, partnerName);
+                            modifiedCount++;
                         }
                     } catch (e) {
                         // Skip invalid URLs
@@ -747,7 +744,7 @@
                 });
 
                 if (modifiedCount === 0) {
-                    showStatus('No event links found in the HTML!', true);
+                    showStatus('No Workiz event links found in the HTML!', true);
                     return;
                 }
 
@@ -765,7 +762,7 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
-                showStatus(`✓ Downloaded! Modified ${modifiedCount} event link${modifiedCount > 1 ? 's' : ''} for ${partnerName}.`);
+                showStatus(`✓ Downloaded! Modified ${modifiedCount} Workiz event link${modifiedCount > 1 ? 's' : ''} for ${partnerName}.`);
             } catch (error) {
                 showStatus('Error processing HTML. Please check your input.', true);
                 console.error('Error:', error);
