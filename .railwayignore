@@ -1,0 +1,21 @@
+# Git files
+.git/
+.gitignore
+
+# Node modules (will be installed by Railway)
+node_modules/
+
+# Development files
+*.log
+.env.local
+.env.development
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
